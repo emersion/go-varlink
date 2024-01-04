@@ -9,7 +9,7 @@ import (
 
 type Interface struct {
 	Name    string
-	Types   map[string]Type
+	Types   map[string]Type // only KindStruct and KindEnum
 	Methods map[string]Method
 	Errors  map[string]Struct
 }
