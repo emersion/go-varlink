@@ -73,10 +73,17 @@ func (c *Client) writeRequest(method string, parameters interface{}, ch chan<- c
 
 	c.pending = append(c.pending, ch)
 
-	return c.writeMessageLocked(map[string]interface{}{
+	err := c.writeMessageLocked(map[string]interface{}{
 		"method":     method,
 		"parameters": parameters,
 	})
+	if err != nil {
+		c.err = err
+		c.conn.Close()
+		return err
+	}
+
+	return nil
 }
 
 func (c *Client) readLoop() {
