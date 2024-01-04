@@ -10,9 +10,18 @@ import (
 	"sync"
 )
 
+type clientRequest struct {
+	Method     string      `json:"method"`
+	Parameters interface{} `json:"parameters"`
+	Oneway     bool        `json:"oneway,omitempty"`
+	More       bool        `json:"more,omitempty"`
+	Upgrade    bool        `json:"upgrade,omitempty"`
+}
+
 type clientReply struct {
 	Parameters json.RawMessage `json:"parameters"`
-	Error      string          `json:"error"`
+	Continues  bool            `json:"continues,omitempty"`
+	Error      string          `json:"error,omitempty"`
 }
 
 type Client struct {
@@ -68,7 +77,7 @@ func (c *Client) readMessage(v interface{}) error {
 	return nil
 }
 
-func (c *Client) writeRequest(method string, parameters interface{}, ch chan<- clientReply) error {
+func (c *Client) writeRequest(req *clientRequest, ch chan<- clientReply) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -78,10 +87,7 @@ func (c *Client) writeRequest(method string, parameters interface{}, ch chan<- c
 
 	c.pending = append(c.pending, ch)
 
-	err := c.writeMessageLocked(map[string]interface{}{
-		"method":     method,
-		"parameters": parameters,
-	})
+	err := c.writeMessageLocked(req)
 	if err != nil {
 		c.err = err
 		c.conn.Close()
@@ -120,7 +126,9 @@ func (c *Client) readLoop() {
 		c.mutex.Lock()
 		if len(c.pending) > 0 {
 			ch = c.pending[0]
-			c.pending = c.pending[1:]
+			if !reply.Continues {
+				c.pending = c.pending[1:]
+			}
 		}
 		c.mutex.Unlock()
 
@@ -134,30 +142,81 @@ func (c *Client) readLoop() {
 }
 
 func (c *Client) Do(method string, in, out interface{}) error {
-	if in == nil {
-		in = struct{}{}
+	req := clientRequest{
+		Method:     method,
+		Parameters: in,
 	}
+	cc, err := c.do(&req)
+	if err != nil {
+		return err
+	}
+	continues, err := cc.next(out)
+	if continues {
+		c.conn.Close()
+		return fmt.Errorf("varlink: received continues=true in response to a more=false request")
+	}
+	return err
+}
+
+func (c *Client) DoMore(method string, in interface{}) (*ClientCall, error) {
+	req := clientRequest{
+		Method:     method,
+		Parameters: in,
+		More:       true,
+	}
+	return c.do(&req)
+}
+
+func (c *Client) do(req *clientRequest) (*ClientCall, error) {
+	if req.Parameters == nil {
+		req.Parameters = struct{}{}
+	}
+
+	ch := make(chan clientReply, 32)
+	if err := c.writeRequest(req, ch); err != nil {
+		return nil, err
+	}
+
+	return &ClientCall{
+		c:  c,
+		ch: ch,
+	}, nil
+}
+
+type ClientCall struct {
+	c  *Client
+	ch <-chan clientReply
+}
+
+func (cc *ClientCall) Next(out interface{}) error {
+	if cc.ch == nil {
+		return io.EOF
+	}
+
+	continues, err := cc.next(out)
+	if !continues {
+		cc.ch = nil
+	}
+	return err
+}
+
+func (cc *ClientCall) next(out interface{}) (continues bool, err error) {
 	if out == nil {
 		out = new(struct{})
 	}
 
-	ch := make(chan clientReply, 1)
-	if err := c.writeRequest(method, in, ch); err != nil {
-		return err
-	}
-
-	reply, ok := <-ch
+	reply, ok := <-cc.ch
 	if !ok {
-		return c.err
+		return false, cc.c.err
 	}
 
 	if reply.Error != "" {
-		return &Error{Name: reply.Error, Parameters: reply.Parameters}
+		return reply.Continues, &Error{Name: reply.Error, Parameters: reply.Parameters}
 	}
 
 	params := reply.Parameters
 	if params == nil {
 		params = json.RawMessage("{}")
 	}
-	return json.Unmarshal(params, out)
+	return reply.Continues, json.Unmarshal(params, out)
 }
