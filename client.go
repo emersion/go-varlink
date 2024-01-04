@@ -3,6 +3,7 @@ package varlink
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -105,6 +106,9 @@ func (c *Client) readLoop() {
 	for {
 		var reply clientReply
 		if err = c.readMessage(&reply); err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				err = nil
+			}
 			break
 		}
 
