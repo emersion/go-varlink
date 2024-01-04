@@ -79,24 +79,6 @@ func (c *Client) writeRequest(method string, parameters interface{}, ch chan<- c
 	})
 }
 
-func (c *Client) readReply(parameters interface{}) error {
-	var reply struct {
-		Parameters json.RawMessage `json:"parameters"`
-		Error      string          `json:"error"`
-	}
-	if err := c.readMessage(&reply); err != nil {
-		return err
-	}
-	if reply.Error != "" {
-		return &Error{Name: reply.Error, Parameters: reply.Parameters}
-	}
-	if reply.Parameters != nil {
-		return json.Unmarshal(reply.Parameters, parameters)
-	} else {
-		return nil
-	}
-}
-
 func (c *Client) readLoop() {
 	var err error
 	defer func() {
