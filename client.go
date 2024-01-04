@@ -41,6 +41,10 @@ func NewClient(conn net.Conn) *Client {
 	return c
 }
 
+func (c *Client) Close() error {
+	return c.conn.Close()
+}
+
 func (c *Client) writeMessageLocked(v interface{}) error {
 	if err := c.enc.Encode(v); err != nil {
 		return err
