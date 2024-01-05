@@ -4,9 +4,9 @@
 package varlink
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 )
 
@@ -22,13 +22,13 @@ func (err *Error) Error() string {
 type conn struct {
 	net.Conn
 
-	dec *json.Decoder
+	br *bufio.Reader
 }
 
 func newConn(c net.Conn) *conn {
 	return &conn{
 		Conn: c,
-		dec:  json.NewDecoder(c),
+		br:   bufio.NewReader(c),
 	}
 }
 
@@ -43,14 +43,10 @@ func (c *conn) writeMessage(v interface{}) error {
 }
 
 func (c *conn) readMessage(v interface{}) error {
-	if err := c.dec.Decode(v); err != nil {
+	b, err := c.br.ReadBytes(0)
+	if err != nil {
 		return err
 	}
-	var b [1]byte
-	if _, err := io.ReadFull(c.dec.Buffered(), b[:]); err != nil {
-		return err
-	} else if b[0] != 0 {
-		return fmt.Errorf("varlink: expected NUL delimiter, got %v", b[0])
-	}
-	return nil
+	b = b[:len(b)-1]
+	return json.Unmarshal(b, v)
 }
