@@ -122,9 +122,7 @@ func main() {
 	// coming from foreign interfaces can be used
 	// TODO: consider wrapping the original varlink.Error inside the
 	// unmarshalled one
-	f.Func().Params(
-		jen.Id("c").Op("*").Id("Client"),
-	).Id("unmarshalError").Params(
+	f.Func().Id("unmarshalError").Params(
 		jen.Id("err").Id("error"),
 	).Id("error").Block(
 		jen.List(jen.Id("verr"), jen.Id("ok")).Op(":=").Id("err").Assert(jen.Op("*").Qual("git.sr.ht/~emersion/go-varlink", "Error")),
@@ -165,7 +163,7 @@ func main() {
 			),
 			jen.Return().List(
 				jen.Id("out"),
-				jen.Id("c").Dot("unmarshalError").Call(jen.Id("err")),
+				jen.Id("unmarshalError").Call(jen.Id("err")),
 			),
 		)
 	}
