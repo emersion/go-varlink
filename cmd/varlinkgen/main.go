@@ -188,6 +188,32 @@ func main() {
 		jen.Id("Backend").Id("Backend"),
 	)
 
+	errCases = nil
+	for _, name := range errorNames {
+		errCases = append(errCases, jen.Case(jen.Op("*").Id(name+"Error")).Block(
+			jen.Id("name").Op("=").Lit(iface.Name+"."+name),
+		))
+	}
+	errCases = append(errCases, jen.Default().Block(
+		jen.Return().Id("err"),
+	))
+
+	f.Func().Id("marshalError").Params(
+		jen.Id("err").Id("error"),
+	).Id("error").Block(
+		jen.Var().Id("name").String(),
+		jen.Switch(jen.Id("err").Assert(jen.Type())).Block(errCases...),
+		// TODO: remove need to encode error parameters
+		jen.List(jen.Id("b"), jen.Id("encErr")).Op(":=").Qual("encoding/json", "Marshal").Call(jen.Id("err")),
+		jen.If(jen.Id("encErr").Op("!=").Nil()).Block(
+			jen.Return().Id("encErr"),
+		),
+		jen.Return().Op("&").Qual("git.sr.ht/~emersion/go-varlink", "Error").Values(jen.Dict{
+			jen.Id("Name"):       jen.Id("name"),
+			jen.Id("Parameters"): jen.Id("b"),
+		}),
+	)
+
 	var methodCases []jen.Code
 	for _, name := range methodNames {
 		methodCases = append(methodCases, jen.Case(jen.Lit(iface.Name+"."+name)).Block(
@@ -221,7 +247,7 @@ func main() {
 		),
 		jen.Switch(jen.Id("req").Dot("Method")).Block(methodCases...),
 		jen.If(jen.Id("err").Op("!=").Nil()).Block(
-			jen.Return().Id("err"),
+			jen.Return().Id("marshalError").Call(jen.Id("err")),
 		),
 		jen.Return().Id("call").Dot("CloseWithReply").Call(jen.Id("out")),
 	)
