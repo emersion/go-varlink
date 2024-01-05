@@ -86,6 +86,20 @@ func main() {
 
 	f.Line()
 
+	var methodNames []string
+	for name := range iface.Methods {
+		methodNames = append(methodNames, name)
+	}
+	sort.Strings(methodNames)
+
+	for _, name := range methodNames {
+		method := iface.Methods[name]
+
+		f.Type().Id(name + "In").Add(genStruct(method.In))
+		f.Type().Id(name + "Out").Add(genStruct(method.Out))
+		f.Line()
+	}
+
 	f.Type().Id("Client").Struct(
 		jen.Op("*").Qual("git.sr.ht/~emersion/go-varlink", "Client"),
 	)
@@ -131,18 +145,7 @@ func main() {
 		jen.Return().Id("v"),
 	)
 
-	var methodNames []string
-	for name := range iface.Methods {
-		methodNames = append(methodNames, name)
-	}
-	sort.Strings(methodNames)
-
 	for _, name := range methodNames {
-		method := iface.Methods[name]
-
-		f.Type().Id(name + "In").Add(genStruct(method.In))
-		f.Type().Id(name + "Out").Add(genStruct(method.Out))
-
 		f.Func().Params(
 			jen.Id("c").Op("*").Id("Client"),
 		).Id(name).Params(
@@ -166,6 +169,64 @@ func main() {
 			),
 		)
 	}
+
+	f.Line()
+
+	var backendMethods []jen.Code
+	for _, name := range methodNames {
+		backendMethods = append(backendMethods, jen.Id(name).Params(
+			jen.Op("*").Id(name+"In"),
+		).Params(
+			jen.Op("*").Id(name+"Out"),
+			jen.Id("error"),
+		))
+	}
+
+	f.Type().Id("Backend").Interface(backendMethods...)
+
+	f.Line()
+
+	f.Type().Id("Handler").Struct(
+		jen.Id("Backend").Id("Backend"),
+	)
+
+	var methodCases []jen.Code
+	for _, name := range methodNames {
+		methodCases = append(methodCases, jen.Case(jen.Lit(iface.Name+"."+name)).Block(
+			jen.Id("in").Op(":=").New(jen.Id(name+"In")),
+			jen.If(
+				jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
+					jen.Id("req.Parameters"),
+					jen.Id("in"),
+				),
+				jen.Id("err").Op("!=").Nil(),
+			).Block(
+				jen.Return().Id("err"),
+			),
+			jen.List(jen.Id("out"), jen.Id("err")).Op("=").Id("h").Dot("Backend").Dot(name).Call(jen.Id("in")),
+		))
+	}
+	methodCases = append(methodCases, jen.Default().Block(
+		// TODO: use the standard error
+		jen.Id("err").Op("=").Qual("errors", "New").Call(jen.Lit("unknown method")),
+	))
+
+	f.Func().Params(
+		jen.Id("h").Id("Handler"),
+	).Id("HandleVarlink").Params(
+		jen.Id("call").Op("*").Qual("git.sr.ht/~emersion/go-varlink", "ServerCall"),
+		jen.Id("req").Op("*").Qual("git.sr.ht/~emersion/go-varlink", "ServerRequest"),
+	).Id("error").Block(
+		jen.Var().Defs(
+			jen.Id("out").Interface(),
+			jen.Id("err").Id("error"),
+		),
+		jen.Switch(jen.Id("req").Dot("Method")).Block(methodCases...),
+		jen.If(jen.Id("err").Op("!=").Nil()).Block(
+			jen.Return().Id("err"),
+		),
+		jen.Return().Id("call").Dot("CloseWithReply").Call(jen.Id("out")),
+	)
 
 	if err := f.Save(outFilename); err != nil {
 		log.Fatal(err)
