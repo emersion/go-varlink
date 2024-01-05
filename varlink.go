@@ -6,18 +6,8 @@ package varlink
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"net"
 )
-
-type Error struct {
-	Name       string
-	Parameters json.RawMessage
-}
-
-func (err *Error) Error() string {
-	return fmt.Sprintf("varlink: request failed: %v", err.Name)
-}
 
 type conn struct {
 	net.Conn

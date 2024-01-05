@@ -23,6 +23,15 @@ type clientReply struct {
 	Error      string          `json:"error,omitempty"`
 }
 
+type ClientError struct {
+	Name       string
+	Parameters json.RawMessage
+}
+
+func (err *ClientError) Error() string {
+	return fmt.Sprintf("varlink: request failed: %v", err.Name)
+}
+
 type Client struct {
 	conn *conn
 
@@ -175,7 +184,7 @@ func (cc *ClientCall) next(out interface{}) (continues bool, err error) {
 	}
 
 	if reply.Error != "" {
-		return reply.Continues, &Error{Name: reply.Error, Parameters: reply.Parameters}
+		return reply.Continues, &ClientError{Name: reply.Error, Parameters: reply.Parameters}
 	}
 
 	params := reply.Parameters

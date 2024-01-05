@@ -23,6 +23,15 @@ type serverReply struct {
 	Error      string      `json:"error,omitempty"`
 }
 
+type ServerError struct {
+	Name       string
+	Parameters interface{}
+}
+
+func (err *ServerError) Error() string {
+	return fmt.Sprintf("varlink: request failed: %v", err.Name)
+}
+
 type ServerCall struct {
 	conn *conn
 	req  *ServerRequest
@@ -103,7 +112,7 @@ func (srv *Server) serveConn(conn *conn) error {
 			req:  &req,
 		}
 		err := srv.Handler.HandleVarlink(call, &req)
-		var verr *Error
+		var verr *ServerError
 		if errors.As(err, &verr) {
 			if req.Oneway {
 				continue

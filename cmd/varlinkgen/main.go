@@ -125,7 +125,7 @@ func main() {
 	f.Func().Id("unmarshalError").Params(
 		jen.Id("err").Id("error"),
 	).Id("error").Block(
-		jen.List(jen.Id("verr"), jen.Id("ok")).Op(":=").Id("err").Assert(jen.Op("*").Qual("git.sr.ht/~emersion/go-varlink", "Error")),
+		jen.List(jen.Id("verr"), jen.Id("ok")).Op(":=").Id("err").Assert(jen.Op("*").Qual("git.sr.ht/~emersion/go-varlink", "ClientError")),
 		jen.If(jen.Op("!").Id("ok")).Block(
 			jen.Return().Id("err"),
 		),
@@ -203,14 +203,9 @@ func main() {
 	).Id("error").Block(
 		jen.Var().Id("name").String(),
 		jen.Switch(jen.Id("err").Assert(jen.Type())).Block(errCases...),
-		// TODO: remove need to encode error parameters
-		jen.List(jen.Id("b"), jen.Id("encErr")).Op(":=").Qual("encoding/json", "Marshal").Call(jen.Id("err")),
-		jen.If(jen.Id("encErr").Op("!=").Nil()).Block(
-			jen.Return().Id("encErr"),
-		),
-		jen.Return().Op("&").Qual("git.sr.ht/~emersion/go-varlink", "Error").Values(jen.Dict{
+		jen.Return().Op("&").Qual("git.sr.ht/~emersion/go-varlink", "ServerError").Values(jen.Dict{
 			jen.Id("Name"):       jen.Id("name"),
-			jen.Id("Parameters"): jen.Id("b"),
+			jen.Id("Parameters"): jen.Id("err"),
 		}),
 	)
 
