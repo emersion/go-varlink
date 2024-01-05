@@ -1,7 +1,6 @@
 package varlink
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,56 +24,21 @@ type clientReply struct {
 }
 
 type Client struct {
-	conn net.Conn
+	conn *conn
 
 	mutex   sync.Mutex
-	brw     *bufio.ReadWriter
-	enc     *json.Encoder
-	dec     *json.Decoder
 	pending []chan<- clientReply
 	err     error
 }
 
 func NewClient(conn net.Conn) *Client {
-	brw := &bufio.ReadWriter{
-		Reader: bufio.NewReader(conn),
-		Writer: bufio.NewWriter(conn),
-	}
-	c := &Client{
-		conn: conn,
-		brw:  brw,
-		enc:  json.NewEncoder(brw),
-		dec:  json.NewDecoder(brw),
-	}
+	c := &Client{conn: newConn(conn)}
 	go c.readLoop()
 	return c
 }
 
 func (c *Client) Close() error {
 	return c.conn.Close()
-}
-
-func (c *Client) writeMessageLocked(v interface{}) error {
-	if err := c.enc.Encode(v); err != nil {
-		return err
-	}
-	if _, err := c.brw.Write([]byte{0}); err != nil {
-		return err
-	}
-	return c.brw.Flush()
-}
-
-func (c *Client) readMessage(v interface{}) error {
-	if err := c.dec.Decode(v); err != nil {
-		return err
-	}
-	var b [1]byte
-	if _, err := io.ReadFull(c.dec.Buffered(), b[:]); err != nil {
-		return err
-	} else if b[0] != 0 {
-		return fmt.Errorf("varlink: expected NUL delimiter, got %v", b[0])
-	}
-	return nil
 }
 
 func (c *Client) writeRequest(req *clientRequest, ch chan<- clientReply) error {
@@ -87,7 +51,7 @@ func (c *Client) writeRequest(req *clientRequest, ch chan<- clientReply) error {
 
 	c.pending = append(c.pending, ch)
 
-	err := c.writeMessageLocked(req)
+	err := c.conn.writeMessage(req)
 	if err != nil {
 		c.err = err
 		c.conn.Close()
@@ -115,7 +79,7 @@ func (c *Client) readLoop() {
 
 	for {
 		var reply clientReply
-		if err = c.readMessage(&reply); err != nil {
+		if err = c.conn.readMessage(&reply); err != nil {
 			if errors.Is(err, net.ErrClosed) {
 				err = nil
 			}
