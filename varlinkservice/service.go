@@ -8,7 +8,7 @@ import (
 type ExpectedMoreError struct{}
 
 func (err *ExpectedMoreError) Error() string {
-	return "org.varlink.service.ExpectedMore"
+	return "varlink call failed: org.varlink.service.ExpectedMore"
 }
 
 type InterfaceNotFoundError struct {
@@ -16,7 +16,7 @@ type InterfaceNotFoundError struct {
 }
 
 func (err *InterfaceNotFoundError) Error() string {
-	return "org.varlink.service.InterfaceNotFound"
+	return "varlink call failed: org.varlink.service.InterfaceNotFound"
 }
 
 type InvalidParameterError struct {
@@ -24,7 +24,7 @@ type InvalidParameterError struct {
 }
 
 func (err *InvalidParameterError) Error() string {
-	return "org.varlink.service.InvalidParameter"
+	return "varlink call failed: org.varlink.service.InvalidParameter"
 }
 
 type MethodNotFoundError struct {
@@ -32,7 +32,7 @@ type MethodNotFoundError struct {
 }
 
 func (err *MethodNotFoundError) Error() string {
-	return "org.varlink.service.MethodNotFound"
+	return "varlink call failed: org.varlink.service.MethodNotFound"
 }
 
 type MethodNotImplementedError struct {
@@ -40,13 +40,13 @@ type MethodNotImplementedError struct {
 }
 
 func (err *MethodNotImplementedError) Error() string {
-	return "org.varlink.service.MethodNotImplemented"
+	return "varlink call failed: org.varlink.service.MethodNotImplemented"
 }
 
 type PermissionDeniedError struct{}
 
 func (err *PermissionDeniedError) Error() string {
-	return "org.varlink.service.PermissionDenied"
+	return "varlink call failed: org.varlink.service.PermissionDenied"
 }
 
 type GetInfoIn struct{}

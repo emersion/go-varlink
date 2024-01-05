@@ -80,7 +80,7 @@ func main() {
 		f.Func().Params(
 			jen.Id("err").Op("*").Id(name + "Error"),
 		).Id("Error").Params().String().Block(
-			jen.Return().Lit(iface.Name + "." + name),
+			jen.Return().Lit("varlink call failed: " + iface.Name + "." + name),
 		)
 	}
 

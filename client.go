@@ -29,7 +29,7 @@ type ClientError struct {
 }
 
 func (err *ClientError) Error() string {
-	return fmt.Sprintf("varlink: request failed: %v", err.Name)
+	return fmt.Sprintf("varlink: client call failed: %v", err.Name)
 }
 
 type Client struct {

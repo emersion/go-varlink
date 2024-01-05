@@ -29,7 +29,7 @@ type ServerError struct {
 }
 
 func (err *ServerError) Error() string {
-	return fmt.Sprintf("varlink: request failed: %v", err.Name)
+	return fmt.Sprintf("varlink: server call failed: %v", err.Name)
 }
 
 type ServerCall struct {
