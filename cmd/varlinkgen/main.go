@@ -23,8 +23,9 @@ func main() {
 	if inFilename == "" {
 		log.Fatal("-i is required")
 	}
+
 	if outFilename == "" {
-		log.Fatal("-o is required")
+		outFilename = strings.TrimSuffix(inFilename, ".varlink") + ".go"
 	}
 
 	if pkgName == "" {
