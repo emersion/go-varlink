@@ -226,8 +226,13 @@ func main() {
 		))
 	}
 	methodCases = append(methodCases, jen.Default().Block(
-		// TODO: use the standard error
-		jen.Id("err").Op("=").Qual("errors", "New").Call(jen.Lit("unknown method")),
+		// TODO: consider using a generated error struct
+		jen.Id("err").Op("=").Op("&").Qual("git.sr.ht/~emersion/go-varlink", "ServerError").Values(jen.Dict{
+			jen.Id("Name"): jen.Lit("org.varlink.service.MethodNotFound"),
+			jen.Id("Parameters"): jen.Map(jen.String()).String().Values(jen.Dict{
+				jen.Lit("method"): jen.Id("req").Dot("Method"),
+			}),
+		}),
 	))
 
 	f.Func().Params(
