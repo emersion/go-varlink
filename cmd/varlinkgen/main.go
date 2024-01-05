@@ -145,7 +145,7 @@ func main() {
 
 	for _, name := range methodNames {
 		f.Func().Params(
-			jen.Id("c").Op("*").Id("Client"),
+			jen.Id("c").Id("Client"),
 		).Id(name).Params(
 			jen.Id("in").Op("*").Id(name+"In"),
 		).Params(
