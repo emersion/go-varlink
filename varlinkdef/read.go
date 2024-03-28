@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Read parses a Varlink interface definition.
 func Read(r io.Reader) (*Interface, error) {
 	dec := decoder{br: bufio.NewReader(r)}
 	return dec.readInterface()

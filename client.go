@@ -23,15 +23,20 @@ type clientReply struct {
 	Error      string          `json:"error,omitempty"`
 }
 
+// ClientError is a Varlink error returned by a service to a Client.
 type ClientError struct {
 	Name       string
 	Parameters json.RawMessage
 }
 
+// Error implements the error interface.
 func (err *ClientError) Error() string {
 	return fmt.Sprintf("varlink: client call failed: %v", err.Name)
 }
 
+// Client is a Varlink client.
+//
+// Client methods are safe to use from multiple goroutines.
 type Client struct {
 	conn *conn
 
@@ -40,12 +45,14 @@ type Client struct {
 	err     error
 }
 
+// NewClient creates a Varlink client from a net.Conn.
 func NewClient(conn net.Conn) *Client {
 	c := &Client{conn: newConn(conn)}
 	go c.readLoop()
 	return c
 }
 
+// Close closes the connection.
 func (c *Client) Close() error {
 	return c.conn.Close()
 }
@@ -114,6 +121,10 @@ func (c *Client) readLoop() {
 	}
 }
 
+// Do performs a Varlink call.
+//
+// in is a Go value marshaled to a JSON object which contains the request
+// parameters. Similarly, out will be populated with the reply parameters.
 func (c *Client) Do(method string, in, out interface{}) error {
 	req := clientRequest{
 		Method:     method,
@@ -131,6 +142,8 @@ func (c *Client) Do(method string, in, out interface{}) error {
 	return err
 }
 
+// DoMore is similar to Do, but indicates to the service that multiple replies
+// are expected.
 func (c *Client) DoMore(method string, in interface{}) (*ClientCall, error) {
 	req := clientRequest{
 		Method:     method,
@@ -156,11 +169,15 @@ func (c *Client) do(req *clientRequest) (*ClientCall, error) {
 	}, nil
 }
 
+// ClientCall represents an in-progress Varlink method call.
 type ClientCall struct {
 	c  *Client
 	ch <-chan clientReply
 }
 
+// Next waits for a reply.
+//
+// If there are no more replies, io.EOF is returned.
 func (cc *ClientCall) Next(out interface{}) error {
 	if cc.ch == nil {
 		return io.EOF

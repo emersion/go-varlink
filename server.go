@@ -9,6 +9,7 @@ import (
 	"net"
 )
 
+// ServerRequest is a request coming from a Varlink client.
 type ServerRequest struct {
 	Method     string          `json:"method"`
 	Parameters json.RawMessage `json:"parameters"`
@@ -23,15 +24,21 @@ type serverReply struct {
 	Error      string      `json:"error,omitempty"`
 }
 
+// ServerError is an error to be sent to a Varlink client.
 type ServerError struct {
 	Name       string
 	Parameters interface{}
 }
 
+// Error implements the error interface.
 func (err *ServerError) Error() string {
 	return fmt.Sprintf("varlink: server call failed: %v", err.Name)
 }
 
+// ServerCall represents an in-progress Varlink method call.
+//
+// Handlers may call Reply any number of times, then they must end the call
+// with CloseWithReply.
 type ServerCall struct {
 	conn *conn
 	req  *ServerRequest
@@ -55,6 +62,9 @@ func (call *ServerCall) reply(reply *serverReply) error {
 	return call.conn.writeMessage(reply)
 }
 
+// Reply sends a non-final reply.
+//
+// This can only be used if ServerRequest.More is set to true.
 func (call *ServerCall) Reply(parameters interface{}) error {
 	return call.reply(&serverReply{
 		Parameters: parameters,
@@ -62,22 +72,31 @@ func (call *ServerCall) Reply(parameters interface{}) error {
 	})
 }
 
+// CloseWithReply sends a final reply and closes the call.
+//
+// No more replies may be sent.
 func (call *ServerCall) CloseWithReply(parameters interface{}) error {
 	return call.reply(&serverReply{Parameters: parameters})
 }
 
+// A Handler processes Varlink requests.
 type Handler interface {
 	HandleVarlink(call *ServerCall, req *ServerRequest) error
 }
 
+// Server is a Varlink server.
+//
+// The Handler field must be set to a Varlink request handler.
 type Server struct {
 	Handler Handler
 }
 
+// NewServer creates a new Varlink server.
 func NewServer() *Server {
 	return &Server{}
 }
 
+// Serve listens for connections.
 func (srv *Server) Serve(ln net.Listener) error {
 	for {
 		conn, err := ln.Accept()
