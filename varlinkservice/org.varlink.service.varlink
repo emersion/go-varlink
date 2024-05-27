@@ -33,3 +33,36 @@ error PermissionDenied ()
 
 # Method is expected to be called with 'more' set to true, but wasn't
 error ExpectedMore ()
+
+# New interface definition for topology and traffic matrix operations
+interface org.example
+
+# Reads the topology file and returns the graph
+method readTopology() -> (graph Graph)
+
+# Reads the traffic matrix file and returns the matrix
+method readTrafficMatrix() -> (matrix TrafficMatrix)
+
+# Computes the link loads based on the graph and traffic matrix
+method computeLinkLoads(graph: Graph, matrix: TrafficMatrix) -> (loads: []Load)
+
+# Optimizes the link weights based on the graph and traffic matrix
+method optimizeLinkWeights(graph: Graph, matrix: TrafficMatrix) -> (loads: []Load)
+
+type Graph (
+  nodes: int
+  edges: []Edge
+)
+
+type Edge (
+  from: int
+  to: int
+  weight: float
+)
+
+type TrafficMatrix [][]float
+
+type Load (
+  edge: Edge
+  load: float
+)

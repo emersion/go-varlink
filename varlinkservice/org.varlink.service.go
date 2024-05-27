@@ -5,6 +5,7 @@ import (
 	govarlink "git.sr.ht/~emersion/go-varlink"
 )
 
+// Define errors
 type ExpectedMoreError struct{}
 
 func (err *ExpectedMoreError) Error() string {
@@ -49,6 +50,7 @@ func (err *PermissionDeniedError) Error() string {
 	return "varlink call failed: org.varlink.service.PermissionDenied"
 }
 
+// Define input and output types
 type GetInfoIn struct{}
 type GetInfoOut struct {
 	Interfaces []string `json:"interfaces"`
@@ -65,6 +67,26 @@ type GetInterfaceDescriptionOut struct {
 	Description string `json:"description"`
 }
 
+// Define types for new methods
+type Graph struct {
+	Nodes int    `json:"nodes"`
+	Edges []Edge `json:"edges"`
+}
+
+type Edge struct {
+	From   int     `json:"from"`
+	To     int     `json:"to"`
+	Weight float64 `json:"weight"`
+}
+
+type TrafficMatrix [][]float64
+
+type Load struct {
+	Edge Edge    `json:"edge"`
+	Load float64 `json:"load"`
+}
+
+// Client struct
 type Client struct {
 	*govarlink.Client
 }
@@ -96,6 +118,7 @@ func unmarshalError(err error) error {
 	}
 	return v
 }
+
 func (c Client) GetInfo(in *GetInfoIn) (*GetInfoOut, error) {
 	if in == nil {
 		in = new(GetInfoIn)
@@ -104,6 +127,7 @@ func (c Client) GetInfo(in *GetInfoIn) (*GetInfoOut, error) {
 	err := c.Client.Do("org.varlink.service.GetInfo", in, out)
 	return out, unmarshalError(err)
 }
+
 func (c Client) GetInterfaceDescription(in *GetInterfaceDescriptionIn) (*GetInterfaceDescriptionOut, error) {
 	if in == nil {
 		in = new(GetInterfaceDescriptionIn)
@@ -113,11 +137,50 @@ func (c Client) GetInterfaceDescription(in *GetInterfaceDescriptionIn) (*GetInte
 	return out, unmarshalError(err)
 }
 
+// Define new methods for the client
+func (c Client) ReadTopology() (*Graph, error) {
+	var out Graph
+	err := c.Client.Do("org.example.readTopology", nil, &out)
+	return &out, unmarshalError(err)
+}
+
+func (c Client) ReadTrafficMatrix() (*TrafficMatrix, error) {
+	var out TrafficMatrix
+	err := c.Client.Do("org.example.readTrafficMatrix", nil, &out)
+	return &out, unmarshalError(err)
+}
+
+func (c Client) ComputeLinkLoads(graph Graph, matrix TrafficMatrix) ([]Load, error) {
+	in := struct {
+		Graph  Graph         `json:"graph"`
+		Matrix TrafficMatrix `json:"matrix"`
+	}{graph, matrix}
+	var out []Load
+	err := c.Client.Do("org.example.computeLinkLoads", in, &out)
+	return out, unmarshalError(err)
+}
+
+func (c Client) OptimizeLinkWeights(graph Graph, matrix TrafficMatrix) ([]Load, error) {
+	in := struct {
+		Graph  Graph         `json:"graph"`
+		Matrix TrafficMatrix `json:"matrix"`
+	}{graph, matrix}
+	var out []Load
+	err := c.Client.Do("org.example.optimizeLinkWeights", in, &out)
+	return out, unmarshalError(err)
+}
+
+// Backend interface
 type Backend interface {
 	GetInfo(*GetInfoIn) (*GetInfoOut, error)
 	GetInterfaceDescription(*GetInterfaceDescriptionIn) (*GetInterfaceDescriptionOut, error)
+	ReadTopology() (*Graph, error)
+	ReadTrafficMatrix() (*TrafficMatrix, error)
+	ComputeLinkLoads(graph Graph, matrix TrafficMatrix) ([]Load, error)
+	OptimizeLinkWeights(graph Graph, matrix TrafficMatrix) ([]Load, error)
 }
 
+// Handler struct
 type Handler struct {
 	Backend Backend
 }
@@ -145,6 +208,7 @@ func marshalError(err error) error {
 		Parameters: err,
 	}
 }
+
 func (h Handler) HandleVarlink(call *govarlink.ServerCall, req *govarlink.ServerRequest) error {
 	var (
 		out interface{}
@@ -163,6 +227,28 @@ func (h Handler) HandleVarlink(call *govarlink.ServerCall, req *govarlink.Server
 			return err
 		}
 		out, err = h.Backend.GetInterfaceDescription(in)
+	case "org.example.readTopology":
+		out, err = h.Backend.ReadTopology()
+	case "org.example.readTrafficMatrix":
+		out, err = h.Backend.ReadTrafficMatrix()
+	case "org.example.computeLinkLoads":
+		in := struct {
+			Graph  Graph         `json:"graph"`
+			Matrix TrafficMatrix `json:"matrix"`
+		}{}
+		if err := json.Unmarshal(req.Parameters, &in); err != nil {
+			return err
+		}
+		out, err = h.Backend.ComputeLinkLoads(in.Graph, in.Matrix)
+	case "org.example.optimizeLinkWeights":
+		in := struct {
+			Graph  Graph         `json:"graph"`
+			Matrix TrafficMatrix `json:"matrix"`
+		}{}
+		if err := json.Unmarshal(req.Parameters, &in); err != nil {
+			return err
+		}
+		out, err = h.Backend.OptimizeLinkWeights(in.Graph, in.Matrix)
 	default:
 		err = &govarlink.ServerError{
 			Name:       "org.varlink.service.MethodNotFound",
