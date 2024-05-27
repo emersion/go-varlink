@@ -9,6 +9,27 @@ import (
 	"sync"
 )
 
+// Edge represents a link between two nodes with a weight
+type Edge struct {
+	From, To int
+	Weight   float64
+}
+
+// Graph represents the network topology
+type Graph struct {
+	Nodes int
+	Edges []Edge
+}
+
+// TrafficMatrix represents the traffic matrix between nodes
+type TrafficMatrix [][]float64
+
+// Load represents the load on a link
+type Load struct {
+	Edge Edge
+	Load float64
+}
+
 type clientRequest struct {
 	Method     string      `json:"method"`
 	Parameters interface{} `json:"parameters"`
@@ -209,4 +230,84 @@ func (cc *ClientCall) next(out interface{}) (continues bool, err error) {
 		params = json.RawMessage("{}")
 	}
 	return reply.Continues, json.Unmarshal(params, out)
+}
+
+// New functionality for v0.2
+
+// ReadTopology sends a request to read the topology file
+func (c *Client) ReadTopology() (Graph, error) {
+	var graph Graph
+	err := c.Do("org.example.readTopology", nil, &graph)
+	return graph, err
+}
+
+// ReadTrafficMatrix sends a request to read the traffic matrix
+func (c *Client) ReadTrafficMatrix() (TrafficMatrix, error) {
+	var matrix TrafficMatrix
+	err := c.Do("org.example.readTrafficMatrix", nil, &matrix)
+	return matrix, err
+}
+
+// ComputeLinkLoads sends a request to compute link loads based on the graph and traffic matrix
+func (c *Client) ComputeLinkLoads(graph Graph, matrix TrafficMatrix) ([]Load, error) {
+	body := map[string]interface{}{
+		"graph":  graph,
+		"matrix": matrix,
+	}
+	var loads []Load
+	err := c.Do("org.example.computeLinkLoads", body, &loads)
+	return loads, err
+}
+
+// OptimizeLinkWeights sends a request to optimize link weights based on the graph and traffic matrix
+func (c *Client) OptimizeLinkWeights(graph Graph, matrix TrafficMatrix) ([]Load, error) {
+	body := map[string]interface{}{
+		"graph":  graph,
+		"matrix": matrix,
+	}
+	var loads []Load
+	err := c.Do("org.example.optimizeLinkWeights", body, &loads)
+	return loads, err
+}
+
+func main() {
+	// Establish connection to the server
+	conn, err := net.Dial("unix", "/var/run/org.example")
+	if err != nil {
+		panic(err)
+	}
+	client := NewClient(conn)
+
+	// Read topology and traffic matrix
+	topology, err := client.ReadTopology()
+	if err != nil {
+		panic(err)
+	}
+	trafficMatrix, err := client.ReadTrafficMatrix()
+	if err != nil {
+		panic(err)
+	}
+
+	// Compute initial link loads
+	linkLoads, err := client.ComputeLinkLoads(topology, trafficMatrix)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Initial link loads:")
+	for _, load := range linkLoads {
+		fmt.Printf("Link from %d to %d has load %f\n", load.Edge.From, load.Edge.To, load.Load)
+	}
+
+	// Optimize link weights
+	optimizedLoads, err := client.OptimizeLinkWeights(topology, trafficMatrix)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Optimized link loads:")
+	for _, load := range optimizedLoads {
+		fmt.Printf("Link from %d to %d has load %f\n", load.Edge.From, load.Edge.To, load.Load)
+	}
+
+	// Close client connection
+	client.Close()
 }
