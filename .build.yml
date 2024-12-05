@@ -1,0 +1,15 @@
+image: alpine/latest
+packages:
+  - go
+sources:
+  - https://github.com/emersion/go-varlink
+tasks:
+  - build: |
+      cd go-varlink
+      go build -race -v ./...
+  - test: |
+      cd go-varlink
+      go test -race ./...
+  - gofmt: |
+      cd go-varlink
+      test -z $(gofmt -l .)
