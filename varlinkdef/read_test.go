@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"git.sr.ht/~emersion/go-varlink/varlinkdef"
+	"github.com/emersion/go-varlink/varlinkdef"
 )
 
 var serviceRaw = `# The Varlink Service Interface is provided by every varlink service. It

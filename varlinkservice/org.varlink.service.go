@@ -2,7 +2,7 @@ package varlinkservice
 
 import (
 	"encoding/json"
-	govarlink "git.sr.ht/~emersion/go-varlink"
+	govarlink "github.com/emersion/go-varlink"
 )
 
 type ExpectedMoreError struct{}

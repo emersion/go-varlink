@@ -1,4 +1,4 @@
-module git.sr.ht/~emersion/go-varlink
+module github.com/emersion/go-varlink
 
 go 1.19
 

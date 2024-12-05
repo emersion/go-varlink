@@ -10,7 +10,7 @@ import (
 
 	"github.com/dave/jennifer/jen"
 
-	"git.sr.ht/~emersion/go-varlink/varlinkdef"
+	"github.com/emersion/go-varlink/varlinkdef"
 )
 
 func main() {
@@ -102,7 +102,7 @@ func main() {
 	}
 
 	f.Type().Id("Client").Struct(
-		jen.Op("*").Qual("git.sr.ht/~emersion/go-varlink", "Client"),
+		jen.Op("*").Qual("github.com/emersion/go-varlink", "Client"),
 	)
 
 	f.Line()
@@ -126,7 +126,7 @@ func main() {
 	f.Func().Id("unmarshalError").Params(
 		jen.Id("err").Id("error"),
 	).Id("error").Block(
-		jen.List(jen.Id("verr"), jen.Id("ok")).Op(":=").Id("err").Assert(jen.Op("*").Qual("git.sr.ht/~emersion/go-varlink", "ClientError")),
+		jen.List(jen.Id("verr"), jen.Id("ok")).Op(":=").Id("err").Assert(jen.Op("*").Qual("github.com/emersion/go-varlink", "ClientError")),
 		jen.If(jen.Op("!").Id("ok")).Block(
 			jen.Return().Id("err"),
 		),
@@ -204,7 +204,7 @@ func main() {
 	).Id("error").Block(
 		jen.Var().Id("name").String(),
 		jen.Switch(jen.Id("err").Assert(jen.Type())).Block(errCases...),
-		jen.Return().Op("&").Qual("git.sr.ht/~emersion/go-varlink", "ServerError").Values(jen.Dict{
+		jen.Return().Op("&").Qual("github.com/emersion/go-varlink", "ServerError").Values(jen.Dict{
 			jen.Id("Name"):       jen.Id("name"),
 			jen.Id("Parameters"): jen.Id("err"),
 		}),
@@ -228,7 +228,7 @@ func main() {
 	}
 	methodCases = append(methodCases, jen.Default().Block(
 		// TODO: consider using a generated error struct
-		jen.Id("err").Op("=").Op("&").Qual("git.sr.ht/~emersion/go-varlink", "ServerError").Values(jen.Dict{
+		jen.Id("err").Op("=").Op("&").Qual("github.com/emersion/go-varlink", "ServerError").Values(jen.Dict{
 			jen.Id("Name"): jen.Lit("org.varlink.service.MethodNotFound"),
 			jen.Id("Parameters"): jen.Map(jen.String()).String().Values(jen.Dict{
 				jen.Lit("method"): jen.Id("req").Dot("Method"),
@@ -239,8 +239,8 @@ func main() {
 	f.Func().Params(
 		jen.Id("h").Id("Handler"),
 	).Id("HandleVarlink").Params(
-		jen.Id("call").Op("*").Qual("git.sr.ht/~emersion/go-varlink", "ServerCall"),
-		jen.Id("req").Op("*").Qual("git.sr.ht/~emersion/go-varlink", "ServerRequest"),
+		jen.Id("call").Op("*").Qual("github.com/emersion/go-varlink", "ServerCall"),
+		jen.Id("req").Op("*").Qual("github.com/emersion/go-varlink", "ServerRequest"),
 	).Id("error").Block(
 		jen.Var().Defs(
 			jen.Id("out").Interface(),

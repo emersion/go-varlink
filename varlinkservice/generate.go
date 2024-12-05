@@ -3,7 +3,7 @@
 package varlinkservice
 
 import (
-	_ "git.sr.ht/~emersion/go-varlink/cmd/varlinkgen"
+	_ "github.com/emersion/go-varlink/cmd/varlinkgen"
 )
 
-//go:generate go run git.sr.ht/~emersion/go-varlink/cmd/varlinkgen -i org.varlink.service.varlink
+//go:generate go run github.com/emersion/go-varlink/cmd/varlinkgen -i org.varlink.service.varlink
