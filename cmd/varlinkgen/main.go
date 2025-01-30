@@ -15,9 +15,11 @@ import (
 
 func main() {
 	var inFilename, outFilename, pkgName string
+	var genError bool
 	flag.StringVar(&inFilename, "i", "", "input filename")
 	flag.StringVar(&outFilename, "o", "", "output filename")
 	flag.StringVar(&pkgName, "n", "", "package name")
+	flag.BoolVar(&genError, "gen-error-impl", true, "generate error.Error() default implementations")
 	flag.Parse()
 
 	if inFilename == "" {
@@ -78,11 +80,15 @@ func main() {
 	for _, name := range errorNames {
 		err := iface.Errors[name]
 		f.Type().Id(name + "Error").Add(genStruct(err))
-		f.Func().Params(
-			jen.Id("err").Op("*").Id(name + "Error"),
-		).Id("Error").Params().String().Block(
-			jen.Return().Lit("varlink call failed: " + iface.Name + "." + name),
-		)
+		if genError {
+			f.Func().Params(
+				jen.Id("err").Op("*").Id(name + "Error"),
+			).Id("Error").Params().String().Block(
+				jen.Return().Lit("varlink call failed: " + iface.Name + "." + name),
+			)
+		} else {
+			f.Var().Id("_").Id("error").Op("=").Parens(jen.Op("*").Id(name + "Error")).Parens(jen.Nil())
+		}
 	}
 
 	f.Line()
