@@ -32,6 +32,8 @@ import (
 //go:generate go run github.com/emersion/go-varlink/cmd/varlinkgen -i org.example.ftl.varlink
 ```
 
+## Client
+
 The generated file contains a `Client`, with one Go method per Varlink service
 method:
 
@@ -39,6 +41,8 @@ method:
 client := Client{varlink.NewClient(conn)}
 _, err := client.Jump(&JumpIn{37.56, 126.99})
 ```
+
+## Server
 
 It also contains a `Handler` implementing the Varlink service, and a `Backend`
 interface which needs to be implemented:
@@ -56,6 +60,27 @@ func main() {
     server.Handler = Handler{backend{}}
     if err := server.Serve(listener); err != nil {
         log.Fatal(err)
+    }
+}
+```
+
+### Registry
+
+`Registry` can act as a dispatcher to route requests to appropriate backends:
+
+```go
+type backendA struct{}
+type backendB struct{}
+
+func main() {
+    registry := govarlink.NewRegistry()
+    aApi.Handler{Backend: backendA{}}.Register(registry)
+    bApi.Handler{Backend: backendB{}}.Register(registry)
+
+    server := govarlink.NewServer()
+    server.Handler = registry
+    if err := server.Serve(listener); err != nil {
+        log.Fatal(err.Error())
     }
 }
 ```

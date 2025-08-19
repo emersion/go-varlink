@@ -176,3 +176,10 @@ func (h Handler) HandleVarlink(call *govarlink.ServerCall, req *govarlink.Server
 	}
 	return call.CloseWithReply(out)
 }
+
+func (h Handler) Register(reg *govarlink.Registry) {
+	reg.Add(&govarlink.RegistryInterface{
+		Definition: "# The Varlink Service Interface is provided by every varlink service. It\n# describes the service and the interfaces it implements.\ninterface org.varlink.service\n\n# Get a list of all the interfaces a service provides and information\n# about the implementation.\nmethod GetInfo() -> (\n  vendor: string,\n  product: string,\n  version: string,\n  url: string,\n  interfaces: []string\n)\n\n# Get the description of an interface that is implemented by this service.\nmethod GetInterfaceDescription(interface: string) -> (description: string)\n\n# The requested interface was not found.\nerror InterfaceNotFound (interface: string)\n\n# The requested method was not found\nerror MethodNotFound (method: string)\n\n# The interface defines the requested method, but the service does not\n# implement it.\nerror MethodNotImplemented (method: string)\n\n# One of the passed parameters is invalid.\nerror InvalidParameter (parameter: string)\n\n# Client is denied access\nerror PermissionDenied ()\n\n# Method is expected to be called with 'more' set to true, but wasn't\nerror ExpectedMore ()\n",
+		Name:       "org.varlink.service",
+	}, h)
+}
