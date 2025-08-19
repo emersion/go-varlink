@@ -261,6 +261,26 @@ func main() {
 		jen.Return().Id("call").Dot("CloseWithReply").Call(jen.Id("out")),
 	)
 
+	f.Line()
+
+	f.Func().Params(
+		jen.Id("h").Id("Handler"),
+	).Id("Register").Params(
+		jen.Id("reg").Op("*").Qual("github.com/emersion/go-varlink", "Registry"),
+	).Block(
+		jen.Id("reg").Dot("Add").Call(
+			jen.Op("&").Qual("github.com/emersion/go-varlink", "RegistryInterface").Values(jen.Dict{
+				jen.Id("Name"):       jen.Lit(iface.Name),
+				jen.Id("Handler"):    jen.Id("h"),
+				jen.Id("Definition"): jen.Id("definition"),
+			}),
+		),
+	)
+
+	f.Line()
+
+	f.Var().Id("definition").String().Op("=").Op("`\n" + readDefinition(inFilename) + "\n`")
+
 	if err := f.Save(outFilename); err != nil {
 		log.Fatal(err)
 	}
@@ -274,6 +294,23 @@ func loadInterface(filename string) (*varlinkdef.Interface, error) {
 	defer f.Close()
 
 	return varlinkdef.Read(f)
+}
+
+// readDefinition loads the .varlink file content as a string
+func readDefinition(filename string) string {
+	f, err := os.Open(filename)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	defer f.Close()
+
+	content, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	// Backticks aren't part of the grammar, we can ignore them
+	return strings.Trim(strings.ReplaceAll(string(content), "`", ""), " \n")
 }
 
 func genType(typ *varlinkdef.Type) jen.Code {
