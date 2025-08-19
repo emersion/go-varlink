@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"log"
 	"os"
@@ -38,7 +39,12 @@ func main() {
 		pkgName = filepath.Base(filepath.Dir(abs))
 	}
 
-	iface, err := loadInterface(inFilename)
+	raw, err := os.ReadFile(inFilename)
+	if err != nil {
+		log.Fatalf("failed to read Varlink interface definition: %v", err)
+	}
+
+	iface, err := varlinkdef.Read(bytes.NewReader(raw))
 	if err != nil {
 		log.Fatalf("failed to load Varlink interface definition: %v", err)
 	}
@@ -261,19 +267,27 @@ func main() {
 		jen.Return().Id("call").Dot("CloseWithReply").Call(jen.Id("out")),
 	)
 
+	f.Line()
+
+	f.Func().Params(
+		jen.Id("h").Id("Handler"),
+	).Id("Register").Params(
+		jen.Id("reg").Op("*").Qual("github.com/emersion/go-varlink", "Registry"),
+	).Block(
+		jen.Id("reg").Dot("Add").Call(
+			jen.Op("&").Qual("github.com/emersion/go-varlink", "RegistryInterface").Values(jen.Dict{
+				jen.Id("Name"):       jen.Lit(iface.Name),
+				jen.Id("Definition"): jen.Lit(string(raw)),
+			}),
+			jen.Id("h"),
+		),
+	)
+
+	f.Line()
+
 	if err := f.Save(outFilename); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func loadInterface(filename string) (*varlinkdef.Interface, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	return varlinkdef.Read(f)
 }
 
 func genType(typ *varlinkdef.Type) jen.Code {
