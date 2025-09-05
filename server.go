@@ -19,15 +19,15 @@ type ServerRequest struct {
 }
 
 type serverReply struct {
-	Parameters interface{} `json:"parameters"`
-	Continues  bool        `json:"continues,omitempty"`
-	Error      string      `json:"error,omitempty"`
+	Parameters any    `json:"parameters"`
+	Continues  bool   `json:"continues,omitempty"`
+	Error      string `json:"error,omitempty"`
 }
 
 // ServerError is an error to be sent to a Varlink client.
 type ServerError struct {
 	Name       string
-	Parameters interface{}
+	Parameters any
 }
 
 // Error implements the error interface.
@@ -65,7 +65,7 @@ func (call *ServerCall) reply(reply *serverReply) error {
 // Reply sends a non-final reply.
 //
 // This can only be used if ServerRequest.More is set to true.
-func (call *ServerCall) Reply(parameters interface{}) error {
+func (call *ServerCall) Reply(parameters any) error {
 	return call.reply(&serverReply{
 		Parameters: parameters,
 		Continues:  true,
@@ -75,7 +75,7 @@ func (call *ServerCall) Reply(parameters interface{}) error {
 // CloseWithReply sends a final reply and closes the call.
 //
 // No more replies may be sent.
-func (call *ServerCall) CloseWithReply(parameters interface{}) error {
+func (call *ServerCall) CloseWithReply(parameters any) error {
 	return call.reply(&serverReply{Parameters: parameters})
 }
 
