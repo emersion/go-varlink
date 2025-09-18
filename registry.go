@@ -1,7 +1,6 @@
 package varlink
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -15,7 +14,7 @@ type RegistryInterface struct {
 // appropriate interface handlers based on the method namespace.
 type Registry struct {
 	// interfaces holds a mapping between a Varlink namespace and
-	// Namespace. It is populated by the library users, by
+	// RegistryInterface. It is populated by the library users, by
 	// calling the Register method.
 	interfaces map[string]RegistryInterface
 	handlers   map[string]Handler
@@ -37,13 +36,12 @@ func (r *Registry) Add(iface *RegistryInterface, handler Handler) {
 
 // HandleVarlink dispatches calls to the appropriate interface handlers.
 func (r *Registry) HandleVarlink(call *ServerCall, req *ServerRequest) error {
-	var namespace string
 	lastDot := strings.LastIndexByte(req.Method, '.')
 	if lastDot <= 0 {
-		return fmt.Errorf("invalid method fully qualified name")
+		lastDot = 0
 	}
 
-	handler, ok := r.handlers[namespace]
+	handler, ok := r.handlers[req.Method[:lastDot]]
 	if !ok {
 		return &ServerError{
 			Name:       "org.varlink.service.InterfaceNotFound",
