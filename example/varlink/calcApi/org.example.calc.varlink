@@ -1,0 +1,13 @@
+interface org.example.calc
+
+error DivisionByZero ()
+
+method Multiply(
+    a: int,
+    b: int
+) -> (result: int)
+
+method Divide(
+    a: int,
+    b: int
+) -> (result: int)

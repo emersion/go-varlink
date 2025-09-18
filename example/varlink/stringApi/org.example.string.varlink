@@ -1,0 +1,9 @@
+interface org.example.string
+
+method Repeat(
+    input: string
+) -> (output: string)
+
+method Reverse(
+    input: string
+) -> (output: string)
