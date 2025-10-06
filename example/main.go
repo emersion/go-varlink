@@ -6,41 +6,41 @@ import (
 	"syscall"
 
 	govarlink "github.com/emersion/go-varlink"
-	"github.com/emersion/go-varlink/example/varlink/calcApi"
-	"github.com/emersion/go-varlink/example/varlink/stringApi"
+	"github.com/emersion/go-varlink/example/internal/varlink/calcapi"
+	"github.com/emersion/go-varlink/example/internal/varlink/stringapi"
 )
 
 type calcBackend struct{}
 
-func (calcBackend) Multiply(in *calcApi.MultiplyIn) (*calcApi.MultiplyOut, error) {
-	return &calcApi.MultiplyOut{Result: in.A * in.B}, nil
+func (calcBackend) Multiply(in *calcapi.MultiplyIn) (*calcapi.MultiplyOut, error) {
+	return &calcapi.MultiplyOut{Result: in.A * in.B}, nil
 }
 
-func (calcBackend) Divide(in *calcApi.DivideIn) (*calcApi.DivideOut, error) {
+func (calcBackend) Divide(in *calcapi.DivideIn) (*calcapi.DivideOut, error) {
 	if in.B == 0 {
-		return nil, &calcApi.DivisionByZeroError{}
+		return nil, &calcapi.DivisionByZeroError{}
 	}
-	return &calcApi.DivideOut{Result: in.A / in.B}, nil
+	return &calcapi.DivideOut{Result: in.A / in.B}, nil
 }
 
 type stringBackend struct{}
 
-func (stringBackend) Repeat(in *stringApi.RepeatIn) (*stringApi.RepeatOut, error) {
-	return &stringApi.RepeatOut{Output: in.Input}, nil
+func (stringBackend) Repeat(in *stringapi.RepeatIn) (*stringapi.RepeatOut, error) {
+	return &stringapi.RepeatOut{Output: in.Input}, nil
 }
 
-func (stringBackend) Reverse(in *stringApi.ReverseIn) (*stringApi.ReverseOut, error) {
+func (stringBackend) Reverse(in *stringapi.ReverseIn) (*stringapi.ReverseOut, error) {
 	result := make([]rune, len(in.Input))
 	for i, char := range in.Input {
 		result[len(in.Input)-i-1] = char
 	}
-	return &stringApi.ReverseOut{Output: string(result)}, nil
+	return &stringapi.ReverseOut{Output: string(result)}, nil
 }
 
 func main() {
 	registry := govarlink.NewRegistry()
-	calcApi.Handler{Backend: calcBackend{}}.Register(registry)
-	stringApi.Handler{Backend: stringBackend{}}.Register(registry)
+	calcapi.Handler{Backend: calcBackend{}}.Register(registry)
+	stringapi.Handler{Backend: stringBackend{}}.Register(registry)
 
 	_ = syscall.Unlink("./org.example.sock")
 	listener, err := net.Listen("unix", "./org.example.sock")
