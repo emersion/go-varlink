@@ -1,6 +1,7 @@
 package varlink
 
 import (
+	"encoding/json"
 	"strings"
 )
 
@@ -12,12 +13,18 @@ type RegistryInterface struct {
 
 // Registry acts as a request dispatcher that routes Varlink calls to
 // appropriate interface handlers based on the method namespace.
+//
+// It also implements the 'org.varlink.service' introspection methods.
 type Registry struct {
 	// interfaces holds a mapping between a Varlink namespace and
 	// RegistryInterface. It is populated by the library users, by
 	// calling the Register method.
 	interfaces map[string]RegistryInterface
 	handlers   map[string]Handler
+	Vendor     string
+	Product    string
+	Version    string
+	Url        string
 }
 
 func NewRegistry() *Registry {
@@ -34,8 +41,76 @@ func (r *Registry) Add(iface *RegistryInterface, handler Handler) {
 	r.handlers[iface.Name] = handler
 }
 
+// getInfoOut is returned by handleGetInfo, containing socket information.
+type getInfoOut struct {
+	Vendor     string   `json:"vendor"`
+	Product    string   `json:"product"`
+	Version    string   `json:"version"`
+	URL        string   `json:"url"`
+	Interfaces []string `json:"interfaces"`
+}
+
+// getInterfaceDescriptionIn is received during introspection.
+type getInterfaceDescriptionIn struct {
+	Interface string `json:"interface"`
+}
+
+// getInterfaceDescriptionOut is the introspection response,
+// containing the string representation of the Varlink API.
+type getInterfaceDescriptionOut struct {
+	Description string `json:"description"`
+}
+
+// handleGetInfo implements 'org.varlink.service.GetInfo' method, returning
+// getInfoOut with socket information, and a list of implemented interfaces.
+func (r *Registry) handleGetInfo(call *ServerCall) error {
+	interfaces := make([]string, 0, len(r.interfaces))
+	for _, iface := range r.interfaces {
+		interfaces = append(interfaces, iface.Name)
+	}
+
+	return call.CloseWithReply(getInfoOut{
+		Product:    r.Product,
+		Vendor:     r.Vendor,
+		Version:    r.Version,
+		URL:        r.Url,
+		Interfaces: interfaces,
+	})
+}
+
+// handleGetInterfaceDescription implements 'org.varlink.service.GetInterfaceDescription' method,
+// returning getInterfaceDescriptionOut.
+func (r *Registry) handleGetInterfaceDescription(call *ServerCall, req *ServerRequest) error {
+	var in getInterfaceDescriptionIn
+	if err := json.Unmarshal(req.Parameters, &in); err != nil {
+		return &ServerError{
+			Name:       "org.varlink.service.InvalidParameter",
+			Parameters: map[string]string{"parameter": "interface"},
+		}
+	}
+
+	iface, ok := r.interfaces[in.Interface]
+	if !ok {
+		return &ServerError{
+			Name:       "org.varlink.service.InterfaceNotFound",
+			Parameters: map[string]string{"interface": in.Interface},
+		}
+	}
+
+	return call.CloseWithReply(getInterfaceDescriptionOut{
+		Description: iface.Definition,
+	})
+}
+
 // HandleVarlink dispatches calls to the appropriate interface handlers.
 func (r *Registry) HandleVarlink(call *ServerCall, req *ServerRequest) error {
+	switch req.Method {
+	case "org.varlink.service.GetInfo":
+		return r.handleGetInfo(call)
+	case "org.varlink.service.GetInterfaceDescription":
+		return r.handleGetInterfaceDescription(call, req)
+	}
+
 	lastDot := strings.LastIndexByte(req.Method, '.')
 	if lastDot <= 0 {
 		lastDot = 0
