@@ -38,7 +38,13 @@ func (stringBackend) Reverse(in *stringapi.ReverseIn) (*stringapi.ReverseOut, er
 }
 
 func main() {
-	registry := govarlink.NewRegistry()
+	registry := govarlink.NewRegistry(&govarlink.RegistryOptions{
+		Vendor:  "emersion/go-varlink",
+		Product: "usage example",
+		Version: "1.0",
+		URL:     "https://github.com/emersion/go-varlink",
+	})
+
 	calcapi.Handler{Backend: calcBackend{}}.Register(registry)
 	stringapi.Handler{Backend: stringBackend{}}.Register(registry)
 

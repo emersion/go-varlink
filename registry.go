@@ -10,21 +10,36 @@ type RegistryInterface struct {
 	Definition string
 }
 
+// RegistryOptions holds metadata about a Varlink service that is returned
+// by the 'org.varlink.service.GetInfo' introspection method.
+type RegistryOptions struct {
+	Vendor  string
+	Product string
+	Version string
+	URL     string
+}
+
 // Registry acts as a request dispatcher that routes Varlink calls to
 // appropriate interface handlers based on the method namespace.
+//
+// It also implements the 'org.varlink.service' introspection methods.
 type Registry struct {
 	// interfaces holds a mapping between a Varlink namespace and
 	// RegistryInterface. It is populated by the library users, by
 	// calling the Register method.
 	interfaces map[string]RegistryInterface
 	handlers   map[string]Handler
+	options    RegistryOptions
 }
 
-func NewRegistry() *Registry {
-	return &Registry{
+func NewRegistry(options *RegistryOptions) *Registry {
+	r := &Registry{
 		interfaces: make(map[string]RegistryInterface),
 		handlers:   make(map[string]Handler),
+		options:    *options,
 	}
+	registerOrgVarlinkService(r)
+	return r
 }
 
 // Add registers a new namespace and handler with the registry. This
@@ -40,13 +55,11 @@ func (r *Registry) HandleVarlink(call *ServerCall, req *ServerRequest) error {
 	if lastDot <= 0 {
 		lastDot = 0
 	}
+	iface := req.Method[:lastDot]
 
-	handler, ok := r.handlers[req.Method[:lastDot]]
+	handler, ok := r.handlers[iface]
 	if !ok {
-		return &ServerError{
-			Name:       "org.varlink.service.InterfaceNotFound",
-			Parameters: map[string]string{"interface": req.Method},
-		}
+		return marshalError(&interfaceNotFoundError{Interface: iface})
 	}
 
 	return handler.HandleVarlink(call, req)
