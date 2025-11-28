@@ -153,6 +153,37 @@ func (c *Client) DoMore(method string, in interface{}) (*ClientCall, error) {
 	return c.do(&req)
 }
 
+// OneWay is similar to Do, but does not expect any response from the service.
+func (c *Client) OneWay(method string, in interface{}) error {
+	req := clientRequest{
+		Method:     method,
+		Parameters: in,
+		Oneway:     true,
+	}
+
+	if req.Parameters == nil {
+		req.Parameters = struct{}{}
+	}
+
+	// This code does not use writeRequest: we do not want to create a new channel
+	// and wait for a response, because none will come back.
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.err != nil {
+		return c.err
+	}
+
+	err := c.conn.writeMessage(&req)
+	if err != nil {
+		c.err = err
+		c.conn.Close()
+		return err
+	}
+	return nil
+}
+
 func (c *Client) do(req *clientRequest) (*ClientCall, error) {
 	if req.Parameters == nil {
 		req.Parameters = struct{}{}
