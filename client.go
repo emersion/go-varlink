@@ -57,6 +57,8 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
+// writeRequest sends a request to the server, and registers a channel for
+// a reply. For Oneway requests, ch should be nil.
 func (c *Client) writeRequest(req *clientRequest, ch chan<- clientReply) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -65,7 +67,13 @@ func (c *Client) writeRequest(req *clientRequest, ch chan<- clientReply) error {
 		return c.err
 	}
 
-	c.pending = append(c.pending, ch)
+	if !req.Oneway {
+		c.pending = append(c.pending, ch)
+	}
+
+	if req.Parameters == nil {
+		req.Parameters = struct{}{}
+	}
 
 	err := c.conn.writeMessage(req)
 	if err != nil {
@@ -153,11 +161,17 @@ func (c *Client) DoMore(method string, in interface{}) (*ClientCall, error) {
 	return c.do(&req)
 }
 
-func (c *Client) do(req *clientRequest) (*ClientCall, error) {
-	if req.Parameters == nil {
-		req.Parameters = struct{}{}
+// DoOneway is similar to Do, but does not expect any response from the service.
+func (c *Client) DoOneway(method string, in interface{}) error {
+	req := clientRequest{
+		Method:     method,
+		Parameters: in,
+		Oneway:     true,
 	}
+	return c.writeRequest(&req, nil)
+}
 
+func (c *Client) do(req *clientRequest) (*ClientCall, error) {
 	ch := make(chan clientReply, 32)
 	if err := c.writeRequest(req, ch); err != nil {
 		return nil, err
