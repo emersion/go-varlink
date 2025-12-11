@@ -5,7 +5,7 @@ import (
 	"net"
 	"syscall"
 
-	govarlink "github.com/emersion/go-varlink"
+	"github.com/emersion/go-varlink"
 	"github.com/emersion/go-varlink/example/internal/varlink/calcapi"
 	"github.com/emersion/go-varlink/example/internal/varlink/stringapi"
 )
@@ -38,7 +38,7 @@ func (stringBackend) Reverse(in *stringapi.ReverseIn) (*stringapi.ReverseOut, er
 }
 
 func main() {
-	registry := govarlink.NewRegistry(&govarlink.RegistryOptions{
+	registry := varlink.NewRegistry(&varlink.RegistryOptions{
 		Vendor:  "emersion/go-varlink",
 		Product: "usage example",
 		Version: "1.0",
@@ -55,7 +55,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	server := govarlink.NewServer()
+	server := varlink.NewServer()
 	server.Handler = registry
 	if err = server.Serve(listener); err != nil {
 		log.Fatal(err.Error())

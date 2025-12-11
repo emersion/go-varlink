@@ -73,7 +73,7 @@ type backendA struct{}
 type backendB struct{}
 
 func main() {
-    registry := govarlink.NewRegistry(&govarlink.RegistryOptions{
+    registry := varlink.NewRegistry(&varlink.RegistryOptions{
         Vendor:  "my-vendor",
         Product: "my-product",
         Version: "1.0",
@@ -82,7 +82,7 @@ func main() {
     aApi.Handler{Backend: backendA{}}.Register(registry)
     bApi.Handler{Backend: backendB{}}.Register(registry)
 
-    server := govarlink.NewServer()
+    server := varlink.NewServer()
     server.Handler = registry
     if err := server.Serve(listener); err != nil {
         log.Fatal(err.Error())
