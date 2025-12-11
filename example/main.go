@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"net"
-	"syscall"
+	"os"
 
 	"github.com/emersion/go-varlink"
 	"github.com/emersion/go-varlink/example/internal/varlink/calcapi"
@@ -48,7 +48,7 @@ func main() {
 	calcapi.Handler{Backend: calcBackend{}}.Register(registry)
 	stringapi.Handler{Backend: stringBackend{}}.Register(registry)
 
-	_ = syscall.Unlink("./org.example.sock")
+	_ = os.Remove("./org.example.sock")
 	listener, err := net.Listen("unix", "./org.example.sock")
 	if err != nil {
 		log.Fatal(err.Error())
