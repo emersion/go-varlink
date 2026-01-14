@@ -10,11 +10,11 @@ import (
 )
 
 type clientRequest struct {
-	Method     string      `json:"method"`
-	Parameters interface{} `json:"parameters"`
-	Oneway     bool        `json:"oneway,omitempty"`
-	More       bool        `json:"more,omitempty"`
-	Upgrade    bool        `json:"upgrade,omitempty"`
+	Method     string `json:"method"`
+	Parameters any    `json:"parameters"`
+	Oneway     bool   `json:"oneway,omitempty"`
+	More       bool   `json:"more,omitempty"`
+	Upgrade    bool   `json:"upgrade,omitempty"`
 }
 
 type clientReply struct {
@@ -133,7 +133,7 @@ func (c *Client) readLoop() {
 //
 // in is a Go value marshaled to a JSON object which contains the request
 // parameters. Similarly, out will be populated with the reply parameters.
-func (c *Client) Do(method string, in, out interface{}) error {
+func (c *Client) Do(method string, in, out any) error {
 	req := clientRequest{
 		Method:     method,
 		Parameters: in,
@@ -152,7 +152,7 @@ func (c *Client) Do(method string, in, out interface{}) error {
 
 // DoMore is similar to Do, but indicates to the service that multiple replies
 // are expected.
-func (c *Client) DoMore(method string, in interface{}) (*ClientCall, error) {
+func (c *Client) DoMore(method string, in any) (*ClientCall, error) {
 	req := clientRequest{
 		Method:     method,
 		Parameters: in,
@@ -192,7 +192,7 @@ type ClientCall struct {
 // Next waits for a reply.
 //
 // If there are no more replies, io.EOF is returned.
-func (cc *ClientCall) Next(out interface{}) error {
+func (cc *ClientCall) Next(out any) error {
 	if cc.ch == nil {
 		return io.EOF
 	}
@@ -204,7 +204,7 @@ func (cc *ClientCall) Next(out interface{}) error {
 	return err
 }
 
-func (cc *ClientCall) next(out interface{}) (continues bool, err error) {
+func (cc *ClientCall) next(out any) (continues bool, err error) {
 	if out == nil {
 		out = new(struct{})
 	}
