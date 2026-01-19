@@ -7,3 +7,5 @@ method Repeat(
 method Reverse(
     input: string
 ) -> (output: string)
+
+method Random() -> (output: string)
