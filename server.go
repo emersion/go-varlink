@@ -18,6 +18,22 @@ type ServerRequest struct {
 	Upgrade    bool            `json:"upgrade,omitempty"`
 }
 
+// UnmarshalJSON sanitizes a client input.
+func (req *ServerRequest) UnmarshalJSON(data []byte) error {
+	// a temporary type alias helps us unmarshall the struct
+	// without recursing into this method by accident
+	type rawServerRequest ServerRequest
+	if err := json.Unmarshal(data, (*rawServerRequest)(req)); err != nil {
+		return err
+	}
+
+	// 'parameters' field may be missing (issue #20)
+	if len(req.Parameters) == 0 {
+		req.Parameters = json.RawMessage("{}")
+	}
+	return nil
+}
+
 type serverReply struct {
 	Parameters interface{} `json:"parameters"`
 	Continues  bool        `json:"continues,omitempty"`
