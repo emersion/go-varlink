@@ -37,6 +37,11 @@ func (stringBackend) Reverse(in *stringapi.ReverseIn) (*stringapi.ReverseOut, er
 	return &stringapi.ReverseOut{Output: string(result)}, nil
 }
 
+func (stringBackend) Random(_ *stringapi.RandomIn) (*stringapi.RandomOut, error) {
+	// chosen by a fair dice roll, guaranteed to be random.
+	return &stringapi.RandomOut{Output: "4"}, nil
+}
+
 func main() {
 	registry := varlink.NewRegistry(&varlink.RegistryOptions{
 		Vendor:  "emersion/go-varlink",

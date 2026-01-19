@@ -7,6 +7,11 @@ import (
 	govarlink "github.com/emersion/go-varlink"
 )
 
+type RandomIn struct{}
+type RandomOut struct {
+	Output string `json:"output"`
+}
+
 type RepeatIn struct {
 	Input string `json:"input"`
 }
@@ -40,6 +45,14 @@ func unmarshalError(err error) error {
 	}
 	return v
 }
+func (c Client) Random(in *RandomIn) (*RandomOut, error) {
+	if in == nil {
+		in = new(RandomIn)
+	}
+	out := new(RandomOut)
+	err := c.Client.Do("org.example.string.Random", in, out)
+	return out, unmarshalError(err)
+}
 func (c Client) Repeat(in *RepeatIn) (*RepeatOut, error) {
 	if in == nil {
 		in = new(RepeatIn)
@@ -58,6 +71,7 @@ func (c Client) Reverse(in *ReverseIn) (*ReverseOut, error) {
 }
 
 type Backend interface {
+	Random(*RandomIn) (*RandomOut, error)
 	Repeat(*RepeatIn) (*RepeatOut, error)
 	Reverse(*ReverseIn) (*ReverseOut, error)
 }
@@ -83,6 +97,12 @@ func (h Handler) HandleVarlink(call *govarlink.ServerCall, req *govarlink.Server
 		err error
 	)
 	switch req.Method {
+	case "org.example.string.Random":
+		in := new(RandomIn)
+		if err := json.Unmarshal(req.Parameters, in); err != nil {
+			return err
+		}
+		out, err = h.Backend.Random(in)
 	case "org.example.string.Repeat":
 		in := new(RepeatIn)
 		if err := json.Unmarshal(req.Parameters, in); err != nil {
@@ -109,7 +129,7 @@ func (h Handler) HandleVarlink(call *govarlink.ServerCall, req *govarlink.Server
 
 func (h Handler) Register(reg *govarlink.Registry) {
 	reg.Add(&govarlink.RegistryInterface{
-		Definition: "interface org.example.string\n\nmethod Repeat(\n    input: string\n) -> (output: string)\n\nmethod Reverse(\n    input: string\n) -> (output: string)\n",
+		Definition: "interface org.example.string\n\nmethod Repeat(\n    input: string\n) -> (output: string)\n\nmethod Reverse(\n    input: string\n) -> (output: string)\n\nmethod Random() -> (output: string)\n",
 		Name:       "org.example.string",
 	}, h)
 }
