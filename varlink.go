@@ -22,7 +22,7 @@ func newConn(c net.Conn) *conn {
 	}
 }
 
-func (c *conn) writeMessage(v interface{}) error {
+func (c *conn) writeMessage(v any) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (c *conn) writeMessage(v interface{}) error {
 	return err
 }
 
-func (c *conn) readMessage(v interface{}) error {
+func (c *conn) readMessage(v any) error {
 	b, err := c.br.ReadBytes(0)
 	if err != nil {
 		return err
